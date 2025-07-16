@@ -1,42 +1,722 @@
-<html>
+<!DOCTYPE html>
+<html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <script language="javascript" type="text/javascript" src="libraries/p5.js"></script>
-  <script language="javascript" src="libraries/p5.dom.js"></script>
-  <script language="javascript" src="libraries/p5.sound.js"></script>
-  <script language="javascript" src="libraries/Box2d.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEAT Trading System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-  <script language="javascript" type="text/javascript" src="sketch.js"></script>
-  <script language="javascript" type="text/javascript" src="ConnectionGene.js"></script>
-  <script language="javascript" type="text/javascript" src="ConnectionHistory.js"></script>
-  <script language="javascript" type="text/javascript" src="Node.js"></script>
-  <script language="javascript" type="text/javascript" src="Player.js"></script>
-  <script language="javascript" type="text/javascript" src="Population.js"></script>
-  <script language="javascript" type="text/javascript" src="Species.js"></script>
-  <script language="javascript" type="text/javascript" src="Genome.js"></script>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: #ffffff;
+            overflow-x: hidden;
+        }
 
+        .header {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 1rem 2rem;
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            font-weight: 300;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .header .subtitle {
+            font-size: 0.9rem;
+            opacity: 0.8;
+            margin-top: 0.25rem;
+        }
+
+        .main-container {
+            display: flex;
+            height: calc(100vh - 80px);
+            gap: 1rem;
+            padding: 1rem;
+        }
+
+        .left-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .right-panel {
+            width: 350px;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .panel {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 1.5rem;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .panel h3 {
+            margin-bottom: 1rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .canvas-container {
+            flex: 1;
+            position: relative;
+            border-radius: 8px;
+            overflow: hidden;
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        #tradingCanvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .controls {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn.primary {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        .btn.danger {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        }
+
+        .btn.success {
+            background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+            color: #333;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            opacity: 0.8;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 0.5rem 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%);
+            transition: width 0.3s ease;
+        }
+
+        .log-container {
+            max-height: 200px;
+            overflow-y: auto;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 1rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.8rem;
+        }
+
+        .log-entry {
+            margin-bottom: 0.5rem;
+            padding: 0.25rem 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .log-entry:last-child {
+            border-bottom: none;
+        }
+
+        .log-time {
+            opacity: 0.6;
+            margin-right: 0.5rem;
+        }
+
+        .config-section {
+            margin-bottom: 1rem;
+        }
+
+        .config-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .config-input {
+            width: 80px;
+            padding: 0.25rem 0.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            text-align: center;
+        }
+
+        .config-input:focus {
+            outline: none;
+            border-color: #4facfe;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 0.5rem;
+        }
+
+        .status-running { background: #4ade80; }
+        .status-stopped { background: #ef4444; }
+        .status-paused { background: #f59e0b; }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        .tooltip {
+            position: relative;
+            cursor: help;
+        }
+
+        .tooltip:hover::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 0.5rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            white-space: nowrap;
+            z-index: 1000;
+        }
+
+        @media (max-width: 1200px) {
+            .main-container {
+                flex-direction: column;
+            }
+            
+            .right-panel {
+                width: 100%;
+                flex-direction: row;
+                overflow-x: auto;
+            }
+            
+            .right-panel .panel {
+                min-width: 300px;
+            }
+        }
+    </style>
 </head>
 <body>
+    <header class="header">
+        <h1>
+            🧬 NEAT Trading System
+        </h1>
+        <div class="subtitle">
+            Evolutionary Algorithmic Trading with Technical & Fundamental Analysis
+        </div>
+    </header>
 
-    <div id = "main">
-      <h2> Neat template </h2>
-      <div id = "canvas">
-      </div>
-  </div>
+    <div class="main-container">
+        <div class="left-panel">
+            <!-- Main Visualization -->
+            <div class="panel canvas-container">
+                <canvas id="tradingCanvas"></canvas>
+            </div>
 
+            <!-- Controls -->
+            <div class="panel">
+                <h3>🎮 Controls</h3>
+                <div class="controls">
+                    <button class="btn primary" id="startBtn">
+                        ▶️ Start Evolution
+                    </button>
+                    <button class="btn danger" id="stopBtn" disabled>
+                        ⏹️ Stop
+                    </button>
+                    <button class="btn" id="pauseBtn" disabled>
+                        ⏸️ Pause
+                    </button>
+                    <button class="btn" id="resetBtn">
+                        🔄 Reset
+                    </button>
+                    <button class="btn success" id="backtestBtn">
+                        📊 Backtest Best
+                    </button>
+                    <button class="btn" id="exportBtn">
+                        💾 Export Data
+                    </button>
+                </div>
+            </div>
+        </div>
 
-  <script>
-    //center the canvas
-    var tempString = ""+((window.innerWidth*0.9- 1026 - window.innerWidth*0.9*0.08 )/2)+ "px";
-    document.getElementById("main").style.marginLeft = tempString;
+        <div class="right-panel">
+            <!-- System Status -->
+            <div class="panel">
+                <h3>📊 System Status</h3>
+                <div class="config-item">
+                    <span>Status:</span>
+                    <span id="systemStatus">
+                        <span class="status-indicator status-stopped"></span>
+                        Stopped
+                    </span>
+                </div>
+                <div class="config-item">
+                    <span>Generation:</span>
+                    <span id="currentGeneration">0</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="generationProgress" style="width: 0%"></div>
+                </div>
+            </div>
 
+            <!-- Performance Stats -->
+            <div class="panel">
+                <h3>🏆 Performance</h3>
+                <div class="stats-grid">
+                    <div class="stat-item tooltip" data-tooltip="Highest fitness achieved">
+                        <div class="stat-value" id="bestFitness">0.0000</div>
+                        <div class="stat-label">Best Fitness</div>
+                    </div>
+                    <div class="stat-item tooltip" data-tooltip="Average fitness of current generation">
+                        <div class="stat-value" id="avgFitness">0.0000</div>
+                        <div class="stat-label">Avg Fitness</div>
+                    </div>
+                    <div class="stat-item tooltip" data-tooltip="Number of species in population">
+                        <div class="stat-value" id="speciesCount">0</div>
+                        <div class="stat-label">Species</div>
+                    </div>
+                    <div class="stat-item tooltip" data-tooltip="Total genetic innovations">
+                        <div class="stat-value" id="innovationCount">0</div>
+                        <div class="stat-label">Innovations</div>
+                    </div>
+                </div>
+            </div>
 
-    window.onresize = function(event) {
-      var tempString = ""+((window.innerWidth*0.9- 1026 - window.innerWidth*0.9*0.08 )/2)+ "px";
-      document.getElementById("main").style.marginLeft = tempString;
-    };
+            <!-- Trading Performance -->
+            <div class="panel">
+                <h3>💹 Trading Performance</h3>
+                <div class="config-item">
+                    <span>Total Return:</span>
+                    <span id="totalReturn">0.00%</span>
+                </div>
+                <div class="config-item">
+                    <span>Win Rate:</span>
+                    <span id="winRate">0.0%</span>
+                </div>
+                <div class="config-item">
+                    <span>Sharpe Ratio:</span>
+                    <span id="sharpeRatio">0.000</span>
+                </div>
+                <div class="config-item">
+                    <span>Max Drawdown:</span>
+                    <span id="maxDrawdown">0.00%</span>
+                </div>
+                <div class="config-item">
+                    <span>Total Trades:</span>
+                    <span id="totalTrades">0</span>
+                </div>
+            </div>
 
-  </script>
+            <!-- Configuration -->
+            <div class="panel">
+                <h3>⚙️ Configuration</h3>
+                <div class="config-section">
+                    <h4>NEAT Parameters</h4>
+                    <div class="config-item">
+                        <span>Population Size:</span>
+                        <input type="number" class="config-input" id="populationSize" value="150" min="10" max="1000">
+                    </div>
+                    <div class="config-item">
+                        <span>Mutation Rate:</span>
+                        <input type="number" class="config-input" id="mutationRate" value="0.1" min="0.01" max="1" step="0.01">
+                    </div>
+                </div>
+                <div class="config-section">
+                    <h4>Trading Parameters</h4>
+                    <div class="config-item">
+                        <span>Symbol:</span>
+                        <select class="config-input" id="tradingSymbol" style="width: 100px;">
+                            <option value="EURUSD">EURUSD</option>
+                            <option value="GBPUSD">GBPUSD</option>
+                            <option value="USDJPY">USDJPY</option>
+                            <option value="AUDUSD">AUDUSD</option>
+                        </select>
+                    </div>
+                    <div class="config-item">
+                        <span>Timeframe:</span>
+                        <select class="config-input" id="timeframe" style="width: 80px;">
+                            <option value="5m">5m</option>
+                            <option value="15m">15m</option>
+                            <option value="1h">1h</option>
+                            <option value="4h">4h</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
 
+            <!-- System Log -->
+            <div class="panel">
+                <h3>📝 System Log</h3>
+                <div class="log-container" id="systemLog">
+                    <div class="log-entry">
+                        <span class="log-time">[00:00:00]</span>
+                        System initialized
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="src/config/index.js"></script>
+    <script src="src/visualization/TradingVisualizer.js"></script>
+    <script>
+        // Global system state
+        let neatSystem = null;
+        let isRunning = false;
+        let isPaused = false;
+        let visualizer = null;
+
+        // Initialize system when page loads
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                // Initialize visualizer
+                visualizer = new TradingVisualizer('tradingCanvas');
+                
+                // Setup event listeners
+                setupEventListeners();
+                
+                // Initialize NEAT system (would need to be adapted for browser)
+                logMessage('System ready for initialization');
+                
+            } catch (error) {
+                logMessage(`Initialization error: ${error.message}`, 'error');
+            }
+        });
+
+        function setupEventListeners() {
+            // Control buttons
+            document.getElementById('startBtn').addEventListener('click', startEvolution);
+            document.getElementById('stopBtn').addEventListener('click', stopEvolution);
+            document.getElementById('pauseBtn').addEventListener('click', pauseEvolution);
+            document.getElementById('resetBtn').addEventListener('click', resetSystem);
+            document.getElementById('backtestBtn').addEventListener('click', runBacktest);
+            document.getElementById('exportBtn').addEventListener('click', exportData);
+
+            // Configuration changes
+            document.getElementById('populationSize').addEventListener('change', updateConfig);
+            document.getElementById('mutationRate').addEventListener('change', updateConfig);
+            document.getElementById('tradingSymbol').addEventListener('change', updateConfig);
+            document.getElementById('timeframe').addEventListener('change', updateConfig);
+        }
+
+        async function startEvolution() {
+            if (isRunning) return;
+            
+            try {
+                isRunning = true;
+                updateSystemStatus('running');
+                updateButtons();
+                
+                logMessage('Starting evolution...');
+                
+                // This would initialize and run the NEAT system
+                // For demo purposes, we'll simulate the process
+                simulateEvolution();
+                
+            } catch (error) {
+                logMessage(`Failed to start evolution: ${error.message}`, 'error');
+                isRunning = false;
+                updateSystemStatus('stopped');
+                updateButtons();
+            }
+        }
+
+        function stopEvolution() {
+            isRunning = false;
+            isPaused = false;
+            updateSystemStatus('stopped');
+            updateButtons();
+            logMessage('Evolution stopped');
+        }
+
+        function pauseEvolution() {
+            isPaused = !isPaused;
+            updateSystemStatus(isPaused ? 'paused' : 'running');
+            updateButtons();
+            logMessage(isPaused ? 'Evolution paused' : 'Evolution resumed');
+        }
+
+        function resetSystem() {
+            stopEvolution();
+            
+            // Reset all stats
+            document.getElementById('currentGeneration').textContent = '0';
+            document.getElementById('bestFitness').textContent = '0.0000';
+            document.getElementById('avgFitness').textContent = '0.0000';
+            document.getElementById('speciesCount').textContent = '0';
+            document.getElementById('innovationCount').textContent = '0';
+            
+            // Reset trading stats
+            document.getElementById('totalReturn').textContent = '0.00%';
+            document.getElementById('winRate').textContent = '0.0%';
+            document.getElementById('sharpeRatio').textContent = '0.000';
+            document.getElementById('maxDrawdown').textContent = '0.00%';
+            document.getElementById('totalTrades').textContent = '0';
+            
+            // Reset progress
+            document.getElementById('generationProgress').style.width = '0%';
+            
+            // Clear visualizer
+            if (visualizer) {
+                visualizer.reset();
+            }
+            
+            logMessage('System reset');
+        }
+
+        async function runBacktest() {
+            logMessage('Running backtest with best agent...');
+            
+            // Simulate backtest
+            setTimeout(() => {
+                const results = {
+                    totalReturn: (Math.random() * 0.3 - 0.1) * 100, // -10% to +20%
+                    winRate: Math.random() * 0.4 + 0.4, // 40% to 80%
+                    sharpeRatio: Math.random() * 2 + 0.5, // 0.5 to 2.5
+                    maxDrawdown: Math.random() * 0.15, // 0% to 15%
+                    totalTrades: Math.floor(Math.random() * 200 + 50) // 50 to 250
+                };
+                
+                updateTradingStats(results);
+                logMessage(`Backtest completed: ${results.totalReturn.toFixed(2)}% return`);
+            }, 2000);
+        }
+
+        function exportData() {
+            const data = {
+                timestamp: new Date().toISOString(),
+                generation: document.getElementById('currentGeneration').textContent,
+                bestFitness: document.getElementById('bestFitness').textContent,
+                configuration: {
+                    populationSize: document.getElementById('populationSize').value,
+                    mutationRate: document.getElementById('mutationRate').value,
+                    symbol: document.getElementById('tradingSymbol').value,
+                    timeframe: document.getElementById('timeframe').value
+                }
+            };
+            
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `neat_trading_export_${new Date().toISOString().slice(0, 10)}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            logMessage('Data exported successfully');
+        }
+
+        function updateConfig() {
+            const config = {
+                populationSize: parseInt(document.getElementById('populationSize').value),
+                mutationRate: parseFloat(document.getElementById('mutationRate').value),
+                symbol: document.getElementById('tradingSymbol').value,
+                timeframe: document.getElementById('timeframe').value
+            };
+            
+            logMessage(`Configuration updated: ${JSON.stringify(config)}`);
+        }
+
+        function updateSystemStatus(status) {
+            const statusElement = document.getElementById('systemStatus');
+            const indicator = statusElement.querySelector('.status-indicator');
+            
+            indicator.className = `status-indicator status-${status}`;
+            
+            const statusText = {
+                'running': 'Running',
+                'stopped': 'Stopped',
+                'paused': 'Paused'
+            };
+            
+            statusElement.innerHTML = `<span class="status-indicator status-${status}"></span>${statusText[status]}`;
+            
+            if (status === 'running') {
+                indicator.classList.add('pulse');
+            } else {
+                indicator.classList.remove('pulse');
+            }
+        }
+
+        function updateButtons() {
+            document.getElementById('startBtn').disabled = isRunning;
+            document.getElementById('stopBtn').disabled = !isRunning;
+            document.getElementById('pauseBtn').disabled = !isRunning;
+            document.getElementById('pauseBtn').textContent = isPaused ? '▶️ Resume' : '⏸️ Pause';
+        }
+
+        function updateStats(stats) {
+            document.getElementById('currentGeneration').textContent = stats.generation || '0';
+            document.getElementById('bestFitness').textContent = (stats.bestFitness || 0).toFixed(4);
+            document.getElementById('avgFitness').textContent = (stats.averageFitness || 0).toFixed(4);
+            document.getElementById('speciesCount').textContent = stats.speciesCount || '0';
+            document.getElementById('innovationCount').textContent = stats.innovationCount || '0';
+            
+            // Update progress bar
+            const maxGenerations = 1000;
+            const progress = ((stats.generation || 0) / maxGenerations) * 100;
+            document.getElementById('generationProgress').style.width = `${Math.min(progress, 100)}%`;
+        }
+
+        function updateTradingStats(stats) {
+            document.getElementById('totalReturn').textContent = `${(stats.totalReturn || 0).toFixed(2)}%`;
+            document.getElementById('winRate').textContent = `${((stats.winRate || 0) * 100).toFixed(1)}%`;
+            document.getElementById('sharpeRatio').textContent = (stats.sharpeRatio || 0).toFixed(3);
+            document.getElementById('maxDrawdown').textContent = `${((stats.maxDrawdown || 0) * 100).toFixed(2)}%`;
+            document.getElementById('totalTrades').textContent = stats.totalTrades || '0';
+        }
+
+        function logMessage(message, type = 'info') {
+            const logContainer = document.getElementById('systemLog');
+            const timestamp = new Date().toLocaleTimeString();
+            
+            const logEntry = document.createElement('div');
+            logEntry.className = 'log-entry';
+            logEntry.innerHTML = `<span class="log-time">[${timestamp}]</span>${message}`;
+            
+            if (type === 'error') {
+                logEntry.style.color = '#ef4444';
+            } else if (type === 'success') {
+                logEntry.style.color = '#4ade80';
+            }
+            
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+            
+            // Keep only last 50 entries
+            while (logContainer.children.length > 50) {
+                logContainer.removeChild(logContainer.firstChild);
+            }
+        }
+
+        // Simulate evolution process for demo
+        function simulateEvolution() {
+            if (!isRunning) return;
+            
+            let generation = 0;
+            const maxGenerations = 1000;
+            
+            const evolutionStep = () => {
+                if (!isRunning || isPaused) {
+                    if (isRunning && !isPaused) {
+                        setTimeout(evolutionStep, 1000);
+                    }
+                    return;
+                }
+                
+                generation++;
+                
+                // Simulate evolution statistics
+                const stats = {
+                    generation,
+                    bestFitness: Math.random() * 100 + generation * 0.5,
+                    averageFitness: Math.random() * 50 + generation * 0.2,
+                    speciesCount: Math.floor(Math.random() * 10 + 3),
+                    innovationCount: generation * 2 + Math.floor(Math.random() * 5)
+                };
+                
+                updateStats(stats);
+                
+                if (generation % 10 === 0) {
+                    logMessage(`Generation ${generation} completed. Best fitness: ${stats.bestFitness.toFixed(4)}`);
+                }
+                
+                if (generation >= maxGenerations) {
+                    stopEvolution();
+                    logMessage('Evolution completed!', 'success');
+                    return;
+                }
+                
+                setTimeout(evolutionStep, 100); // 100ms per generation for demo
+            };
+            
+            evolutionStep();
+        }
+    </script>
 </body>
 </html>
